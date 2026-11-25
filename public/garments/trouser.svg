@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <rect width="240" height="240" rx="24" fill="#EEEBF3"/>
+  <path d="M80 44H160L174 196H134L120 102L106 196H66L80 44Z" fill="#343844" stroke="#181A20" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M78 60H162" stroke="#181A20" stroke-width="2"/>
+  <path d="M120 44V86" stroke="#181A20" stroke-width="2"/>
+  <path d="M98 44V60M142 44V60" stroke="#E5E3DC" stroke-width="2"/>
+  <path d="M96 60L100 108M144 60L140 108" stroke="#5B6174" stroke-width="1.5"/>
+  <text x="120" y="224" text-anchor="middle" font-family="monospace" font-size="10" fill="#6F6B7A">DOUBLE PLEAT WIDE TROUSER</text>
+</svg>

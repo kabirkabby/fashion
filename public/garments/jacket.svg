@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <rect width="240" height="240" rx="24" fill="#ECEFE9"/>
+  <path d="M85 48L120 58L155 48L182 68L196 146L174 150L164 96V194H76V96L66 150L44 146L58 68L85 48Z" fill="#4B584B" stroke="#1E241E" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M120 58V194" stroke="#1E241E" stroke-width="2.2"/>
+  <path d="M85 48L102 74L120 58L138 74L155 48" fill="#3B473B" stroke="#1E241E" stroke-width="2" stroke-linejoin="round"/>
+  <rect x="86" y="138" width="24" height="28" rx="3" fill="#3E4A3E" stroke="#1E241E" stroke-width="1.8"/>
+  <rect x="130" y="138" width="24" height="28" rx="3" fill="#3E4A3E" stroke="#1E241E" stroke-width="1.8"/>
+  <text x="120" y="224" text-anchor="middle" font-family="monospace" font-size="10" fill="#647064">WAXED CANVAS WORK JACKET</text>
+</svg>

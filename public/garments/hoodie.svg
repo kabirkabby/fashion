@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <rect width="240" height="240" rx="24" fill="#F4F1EB"/>
+  <path d="M84 52C92 40 105 34 120 34C135 34 148 40 156 52L174 64L198 118L175 129L164 98V194C164 198 161 201 157 201H83C79 201 76 198 76 194V98L65 129L42 118L66 64L84 52Z" fill="#2A2826" stroke="#181715" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M92 52C98 63 108 69 120 69C132 69 142 63 148 52" stroke="#F4F1EB" stroke-width="2" stroke-linecap="round"/>
+  <path d="M98 140H142L148 174H92L98 140Z" fill="#373432" stroke="#181715" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M76 184H164" stroke="#181715" stroke-width="2"/>
+  <path d="M111 68V92M129 68V92" stroke="#EAE6DF" stroke-width="2" stroke-linecap="round"/>
+  <text x="120" y="224" text-anchor="middle" font-family="monospace" font-size="10" fill="#78746D">460GSM BOXY HOODIE</text>
+</svg>
