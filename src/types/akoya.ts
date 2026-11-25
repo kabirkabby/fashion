@@ -207,6 +207,7 @@ export interface BrandProfile {
 }
 
 export interface AkoyaStore {
+  _updatedAt?: number;
   profile: BrandProfile;
   team: TeamMember[];
   stages: StageConfig[];

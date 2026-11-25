@@ -10,9 +10,11 @@ import React, {
   useState,
 } from 'react';
 import { AkoyaStore } from '@/types/akoya';
-import { createEmptyStore } from '@/lib/seedData';
+import { createEmptyStore, createSeedStore } from '@/lib/seedData';
 import { getTodayIso } from '@/lib/dateUtils';
 import { evaluateReorderRecommendations, ReorderRecommendation } from '@/lib/reorderEngine';
+
+const LOCAL_STORAGE_KEY = 'akoya_store_v1';
 
 interface ToastMessage {
   id: string;
@@ -36,14 +38,36 @@ interface AkoyaContextValue {
 
 const AkoyaContext = createContext<AkoyaContextValue | null>(null);
 
+function readLocalStore(): AkoyaStore | null {
+  try {
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AkoyaStore;
+    if (parsed && parsed.profile && Array.isArray(parsed.vendors)) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalStore(data: AkoyaStore) {
+  try {
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
 export function AkoyaProvider({ children }: { children: React.ReactNode }) {
   const [store, setStore] = useState<AkoyaStore>(() => createEmptyStore());
+  const storeRef = useRef<AkoyaStore>(store);
   const [today, setToday] = useState<string>('2026-11-25');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const notify = useCallback((text: string, tone: ToastMessage['tone'] = 'success') => {
     const id = `t-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
@@ -53,59 +77,79 @@ export function AkoyaProvider({ children }: { children: React.ReactNode }) {
     }, 3200);
   }, []);
 
+  const syncToServer = useCallback(async (nextStore: AkoyaStore) => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/store', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextStore),
+        keepalive: true,
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+    } catch (e) {
+      console.error('Server persist failed (saved in browser localStorage):', e);
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
+    const localData = readLocalStore();
+
     fetch('/api/store', { cache: 'no-store' })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load store');
         return res.json() as Promise<AkoyaStore>;
       })
-      .then((data) => {
-        if (active) {
-          setToday(getTodayIso());
-          setStore(data);
-          setLoading(false);
+      .then((serverData) => {
+        if (!active) return;
+        setToday(getTodayIso());
+
+        const localTs = localData?._updatedAt || 0;
+        const serverTs = serverData?._updatedAt || 0;
+
+        if (localData && localTs > serverTs) {
+          // Local edits are newer than server file: keep local and sync up
+          storeRef.current = localData;
+          setStore(localData);
+          syncToServer(localData);
+        } else {
+          storeRef.current = serverData;
+          setStore(serverData);
+          writeLocalStore(serverData);
         }
+        setLoading(false);
       })
       .catch(() => {
-        if (active) {
-          setToday(getTodayIso());
-          setLoading(false);
-        }
+        if (!active) return;
+        setToday(getTodayIso());
+        const fallback = localData || createSeedStore();
+        storeRef.current = fallback;
+        setStore(fallback);
+        writeLocalStore(fallback);
+        setLoading(false);
       });
+
     return () => {
       active = false;
     };
-  }, []);
-
-  const persistStore = useCallback((nextStore: AkoyaStore) => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    setSaving(true);
-    saveTimerRef.current = setTimeout(async () => {
-      try {
-        await fetch('/api/store', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(nextStore),
-        });
-      } catch (e) {
-        console.error('Persist failed:', e);
-      } finally {
-        setSaving(false);
-      }
-    }, 150);
-  }, []);
+  }, [syncToServer]);
 
   const updateStore = useCallback(
     (updater: (prev: AkoyaStore) => AkoyaStore, toastText?: string) => {
-      setStore((prev) => {
-        const next = updater(prev);
-        persistStore(next);
-        return next;
-      });
+      const computed = updater(storeRef.current);
+      const next: AkoyaStore = { ...computed, _updatedAt: Date.now() };
+      storeRef.current = next;
+      setStore(next);
+      writeLocalStore(next);
+      void syncToServer(next);
       if (toastText) notify(toastText, 'success');
     },
-    [persistStore, notify]
+    [syncToServer, notify]
   );
 
   const resetWorkspace = useCallback(
@@ -118,16 +162,33 @@ export function AkoyaProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({ mode }),
         });
         if (res.ok) {
-          const next = (await res.json()) as AkoyaStore;
+          const next = { ...((await res.json()) as AkoyaStore), _updatedAt: Date.now() };
+          storeRef.current = next;
           setStore(next);
+          writeLocalStore(next);
           notify(
             mode === 'blank' ? 'Workspace cleared to start fresh' : 'Demo clothing brand data restored',
             'neutral'
           );
+          return;
         }
+      } catch {
+        // Fallback offline reset
       } finally {
         setSaving(false);
       }
+
+      const localReset = {
+        ...(mode === 'blank' ? createEmptyStore() : createSeedStore()),
+        _updatedAt: Date.now(),
+      };
+      storeRef.current = localReset;
+      setStore(localReset);
+      writeLocalStore(localReset);
+      notify(
+        mode === 'blank' ? 'Workspace cleared to start fresh' : 'Demo clothing brand data restored',
+        'neutral'
+      );
     },
     [notify]
   );
